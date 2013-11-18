@@ -25,7 +25,7 @@ FIXMSG1_EXPANDED={
 describe Fix::FixMessage, "#checksum" do
 	it "calculates a correct checksum" do
 		m=Fix::FixMessage.from_fix(FIXMSG1)
-		m.checksum.should eq("034") 
+		m.checksum(m._fix_wo_checksum).should eq("034") 
 	end 
 end 
 

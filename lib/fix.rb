@@ -1,5 +1,6 @@
 CHECKSUM=10
 TIMESTAMP=2
+SOH="\1"
 module Fix
 	class FixMessage
 		def initialize(opts = {})
@@ -12,14 +13,22 @@ module Fix
 		end
 
 		def to_s ()
-			@fixmsg.map {|k,v| "#{k}=#{v}"}.join ";"
+			@fixmsg.map {|k,v| "#{k}=#{v}"}.join "|"
 		end
+		def _fix_wo_checksum(msg=nil)
+			if msg.nil?
+				msg=@fixmsg
+			end
 
+			s=(((msg.select {|k,v| k!=CHECKSUM}).map {|k,v| "#{k}=#{v}"}).join SOH)+SOH
+		end
 		def to_fix (msg=nil)
 			if msg.nil?
 				msg=@fixmsg
 			end
-			(msg.map {|k,v| "#{k}=#{v}"}.join "\1")+ "\1"
+
+			s=self._fix_wo_checksum
+			s+"10="+self.checksum(s)+SOH
 		end
 
 		def set_tag (tag,value)
@@ -28,7 +37,7 @@ module Fix
 
 		def self.from_fix(fixstring)
 			opts={}
-			fixstring.split("\1").each {|pair|
+			fixstring.split(SOH).each {|pair|
 				k,v=pair.split '='
 				opts[k.to_i]=v
 			}
@@ -37,10 +46,10 @@ module Fix
 		def tags
 			@fixmsg
 		end
-		def checksum
+
+		def checksum (msg)
 			sum=0
-			msg_wo_checksum=@fixmsg.select {|k,v| k!=CHECKSUM}
-			self.to_fix(msg_wo_checksum).split("").each {|chr| sum+=chr.ord}
+			msg.split("").each {|chr| sum+=chr.ord}
 			"%03d" % (sum % 256)
 		end
 		def update_timestamp(time=nil)
@@ -62,7 +71,8 @@ module Fix
 
 		def prepare_fix
 			self.update_timestamp
-			self.update_checksum
+			self.update_length
+			self.update_checksum			
 			self.to_fix
 		end
 
