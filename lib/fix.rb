@@ -19,7 +19,7 @@ module Fix
 			if msg.nil?
 				msg=@fixmsg
 			end
-			(@fixmsg.map {|k,v| "#{k}=#{v}"}.join "\1")+ "\1"
+			(msg.map {|k,v| "#{k}=#{v}"}.join "\1")+ "\1"
 		end
 
 		def set_tag (tag,value)
