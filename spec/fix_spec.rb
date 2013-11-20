@@ -54,6 +54,16 @@ describe Fix::FixMessage, "#to_fix" do
     #puts m
     #puts FIXMSG1_EXPANDED
   end
+  it "allows dupe tags", "#to_fix" do
+    m=Fix::FixMessage.from_fix(FIXMSG1)
+    dupes=["GSED018437","GSED018437"]
+    m.set_tag 49, dupes
+    msg=m.to_fix
+    matches=msg.scan (/49=(\w+)/)
+    matches.count.should eq 2
+    (matches.map {|v| v[0].to_s}).should eq dupes
+
+  end
   it "puts tags in correct order" do
     m=Fix::FixMessage.from_fix(FIXMSG1)
     m.prepare_fix!
@@ -63,9 +73,9 @@ describe Fix::FixMessage, "#to_fix" do
     tag.should eq("8")
     # Tag 9 - BodyLength comes 2nd
     tag,value=pairs[1].split "="
-    tag.should eq("9") 
+    tag.should eq("9")
     # Tag 10 - checksum comes last
     tag,value=pairs[-1].split "="
-    tag.should eq("10") 
+    tag.should eq("10")
   end
 end

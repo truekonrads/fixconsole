@@ -30,7 +30,7 @@ HEARTBEAT = {
 DEFAULTS={
   49 => "GSED018437",
   56 => "TR MATCHING",
-  
+
 }
 
 class FixConnection < EM::Connection
@@ -80,24 +80,24 @@ class FixSession
     end
     @state.when(:logon_succeeded,:connected => :showtime)
     @state.when(:logon_error,:connected => :failed_login)
-    
+
 
     @state.when(:unbind,:connected => :new, :showtime => :new)
-    
-    @state.on(:new) do 
+
+    @state.on(:new) do
       if not @hbtimer.nil?
         @hbtimer.cancel
       end
     end
-    @state.on(:showtime) do 
+    @state.on(:showtime) do
       puts "[D] Showtime!"
-     # start_heartbeat @heartbeatint
+      # start_heartbeat @heartbeatint
     end
-    
+
   end
 
   def send_fix (fix)
-#    puts "[D] My state is #{@state.state}"
+    #    puts "[D] My state is #{@state.state}"
     if @state.state==:showtime
       self.cancel_heartbeat
     end
@@ -113,7 +113,7 @@ class FixSession
     if @state.state==:showtime
       self.start_heartbeat
     end
-    
+
   end
 
   def send_login
@@ -136,20 +136,20 @@ class FixSession
     self.go
   end
 
-  def cancel_heartbeat 
+  def cancel_heartbeat
     if not @hbtimer.nil?
       @hbtimer.cancel
     end
   end
 
-  def start_heartbeat     
-    me=self    
-    @hbtimer=EM::Timer.new (@heartbeatint) do     
+  def start_heartbeat
+    me=self
+    @hbtimer=EM::Timer.new (@heartbeatint) do
       me.do_heartbeat
     end
   end
   def do_heartbeat (testreqid=nil)
-    puts "[D] doing heartbeat, testreqid=#{testreqid}"
+    #puts "[D] doing heartbeat, testreqid=#{testreqid}"
     if @state.state==:showtime
       hb=Fix::FixMessage.new HEARTBEAT
       if not testreqid.nil?
@@ -161,7 +161,7 @@ class FixSession
 
   def message_received (fix)
     @nextSeqNumber+=1
-    puts "[D] I am message_received and the state is #{@state.state}"
+    #puts "[D] I am message_received and the state is #{@state.state}"
     @fixmsg=fix
     if @state.state==:connected or @state.state==:showtime
       if fix.tags[35]=="5" and (msgSeqNum=/Tag 34 \(MsgSeqNum\) is lower than expected. Expected (\d+)/.match(fix.tags[58]).captures[0])
@@ -172,7 +172,7 @@ class FixSession
       if fix.tags[35]=="A"  # LOGON
         @msgSeqNum=(fix.tags[789].to_i-1)
         @heartbeatint=fix.tags[108].to_i
-        @state.trigger(:logon_succeeded)                
+        @state.trigger(:logon_succeeded)
       end
       if fix.tags[35]=="4" # SequenceReset
         print "[D] Got a SequenceReset message. New MsgSeqNum should be #{fix.tags[36]}"
@@ -193,5 +193,6 @@ class FixSession
     }
   end
 end
-  #runme!
+if __FILE__ == $0
   FixSession.new.go
+end

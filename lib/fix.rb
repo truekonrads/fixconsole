@@ -7,7 +7,7 @@ module Fix
   SOH="\1"
   MSGTYPE=35
   MSGSEQNUM=34
-  
+  HEADERTAGS=[35,49,56,34,142,52]
   class FixMessage
     def initialize(opts = {})
       @fixmsg = {8 => 'FIXT.1.1'}
@@ -29,7 +29,25 @@ module Fix
       wo_specials=(msg.select {|k,v| not ([CHECKSUM,VERSION,BODYLENGTH].member? k)})
       s="8=#{@fixmsg[VERSION]}"+SOH
       s+="9=#{@fixmsg[BODYLENGTH]}"+SOH
-      s+=((wo_specials.map {|k,v| "#{k}=#{v}"}).join SOH)+SOH
+      #Process "header" tags first
+      HEADERTAGS.each {|t|
+      	if wo_specials.member? t
+      		#puts "[DD] - found tag #{t}" 
+      		s+="#{t}=#{wo_specials[t]}"+SOH
+      		#wo_specials.delete t
+      	end
+      }
+      #Permit sending dupe tags
+
+      wo_specials.map {|k,v| 
+      	if v.is_a? Enumerable 
+      		v.each {|vv|s+="#{k}=#{vv}"+SOH}	
+      	elsif not HEADERTAGS.member? k	# we've already included those
+	      		s+="#{k}=#{v}"+SOH
+	      	
+      	end
+      }
+      return s	
     end
 
     def to_fix (msg=nil)
