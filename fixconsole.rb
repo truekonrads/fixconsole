@@ -69,6 +69,8 @@ class FixSession
     @msgSeqNum=0
     @fixmsg=nil
     @heartbeatint=nil
+    @hbtimer=nil
+    @nextSeqNumber=1
     init_states
   end
   def init_states
@@ -82,30 +84,43 @@ class FixSession
 
     @state.when(:unbind,:connected => :new, :showtime => :new)
     
-
+    @state.on(:new) do 
+      if not @hbtimer.nil?
+        @hbtimer.cancel
+      end
+    end
     @state.on(:showtime) do 
-      start_heartbeat
+      puts "[D] Showtime!"
+     # start_heartbeat @heartbeatint
     end
     
   end
 
   def send_fix (fix)
-    puts "[D] My state is #{@state.state}"
+#    puts "[D] My state is #{@state.state}"
+    if @state.state==:showtime
+      self.cancel_heartbeat
+    end
     DEFAULTS.each {|k,v|
       fix.set_tag(k,v)
     }
     @msgSeqNum+=1
     fix.set_tag Fix::MSGSEQNUM,@msgSeqNum
     fix.prepare_fix!
-    puts fix
-    puts "[D] Using #{@msgSeqNum} for MsgSeqNum"
+    #puts fix
+    #puts "[D] Using #{@msgSeqNum} for MsgSeqNum"
     @connection.send_fix fix
+    if @state.state==:showtime
+      self.start_heartbeat
+    end
+    
   end
 
   def send_login
     login=Fix::FixMessage.new LOGIN
     login.set_tag Fix::MSGSEQNUM,@msgSeqNum
     #login.set_tag 52,"121"
+    login.set_tag 789,@nextSeqNumber
     send_fix login
   end
   def connection_ready (connection)
@@ -117,25 +132,35 @@ class FixSession
     @connection=nil
     puts "[D] Connection lost, state #{@state.state}"
     @state.trigger(:unbind)
-    puts "[D] New  state #{@state.state}"
-    #@state.state=:new
-    sleep 3
+    sleep 1
     self.go
   end
-  def start_heartbeat (hbint)
-    @heartbeatint=hbint/2
-    me=self
-    EM::Timer.new (@heartbeatint) do 
-      me.method(:do_heartbeat)
+
+  def cancel_heartbeat 
+    if not @hbtimer.nil?
+      @hbtimer.cancel
     end
   end
-  def do_hearbeat
+
+  def start_heartbeat     
+    me=self    
+    @hbtimer=EM::Timer.new (@heartbeatint) do     
+      me.do_heartbeat
+    end
+  end
+  def do_heartbeat (testreqid=nil)
+    puts "[D] doing heartbeat, testreqid=#{testreqid}"
     if @state.state==:showtime
-      hb=Fix::FixMessage HEARTBEAT
+      hb=Fix::FixMessage.new HEARTBEAT
+      if not testreqid.nil?
+        hb.set_tag 112, testreqid
+      end
       self.send_fix hb
     end
   end
+
   def message_received (fix)
+    @nextSeqNumber+=1
     puts "[D] I am message_received and the state is #{@state.state}"
     @fixmsg=fix
     if @state.state==:connected or @state.state==:showtime
@@ -144,10 +169,19 @@ class FixSession
         @msgSeqNum=(msgSeqNum.to_i)
         puts "[D] The new MsgSeqNum is #{@msgSeqNum}"
       end
-      if fix.tags[35]=="A"
-        @msgSeqNum=(@msgSeqNum.to_i-1)
+      if fix.tags[35]=="A"  # LOGON
+        @msgSeqNum=(fix.tags[789].to_i-1)
         @heartbeatint=fix.tags[108].to_i
         @state.trigger(:logon_succeeded)                
+      end
+      if fix.tags[35]=="4" # SequenceReset
+        print "[D] Got a SequenceReset message. New MsgSeqNum should be #{fix.tags[36]}"
+        @nextSeqNumber=fix.tags[36].to_i
+      end
+
+      if fix.tags[35]=="1" # TestRequest
+        print "[D] Got a TestRequest message with TestRequestId #{fix.tags[112]}"
+        self.do_heartbeat fix.tags[112]
       end
     end
   end

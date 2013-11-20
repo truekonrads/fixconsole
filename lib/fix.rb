@@ -17,7 +17,8 @@ module Fix
     end
 
     def to_s ()
-      @fixmsg.map {|k,v| "#{k}=#{v}"}.join "|"
+      #@fixmsg.map {|k,v| "#{k}=#{v}"}.join "|"
+      to_fix().gsub SOH,'|'
     end
 
     def _fix_wo_checksum(msg=nil)
