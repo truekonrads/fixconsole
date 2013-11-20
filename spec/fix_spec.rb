@@ -38,7 +38,7 @@ describe Fix::FixMessage, "#from_fix" do
   end
 end
 describe Fix::FixMessage, "#calc_length" do
-  it "parses fix message correctly" do
+  it "calculates length correctly" do
     m=Fix::FixMessage.from_fix(FIXMSG1)
     m.calc_length.to_s.should  eq("121")
 
@@ -61,8 +61,11 @@ describe Fix::FixMessage, "#to_fix" do
     # Tag 8 comes 1st
     tag,value=pairs[0].split "="
     tag.should eq("8")
-    # Tag 9 comes 2nd
+    # Tag 9 - BodyLength comes 2nd
     tag,value=pairs[1].split "="
     tag.should eq("9") 
+    # Tag 10 - checksum comes last
+    tag,value=pairs[-1].split "="
+    tag.should eq("10") 
   end
 end

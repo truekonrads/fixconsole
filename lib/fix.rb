@@ -1,10 +1,13 @@
 
 module Fix
   CHECKSUM=10
-  TIMESTAMP=2
+  TIMESTAMP=52
   BODYLENGTH=9
   VERSION=8
   SOH="\1"
+  MSGTYPE=35
+  MSGSEQNUM=34
+  
   class FixMessage
     def initialize(opts = {})
       @fixmsg = {8 => 'FIXT.1.1'}
@@ -78,6 +81,9 @@ module Fix
 
       @fixmsg[CHECKSUM]=sum
       sum
+    end
+    def receive_data(data)
+    	puts data
     end
     def calc_length(msg=nil)
     	if msg.nil?
