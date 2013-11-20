@@ -29,25 +29,31 @@ module Fix
       wo_specials=(msg.select {|k,v| not ([CHECKSUM,VERSION,BODYLENGTH].member? k)})
       s="8=#{@fixmsg[VERSION]}"+SOH
       s+="9=#{@fixmsg[BODYLENGTH]}"+SOH
+
       #Process "header" tags first
       HEADERTAGS.each {|t|
-      	if wo_specials.member? t
-      		#puts "[DD] - found tag #{t}" 
-      		s+="#{t}=#{wo_specials[t]}"+SOH
-      		#wo_specials.delete t
-      	end
+        if wo_specials.member? t
+          #puts "[DD] - found tag #{t}"
+          if wo_specials[t].class==Array
+            wo_specials[t].each {|vv|s+="#{t}=#{vv}"+SOH}
+          else
+            s+="#{t}=#{wo_specials[t]}"+SOH
+          end
+          #wo_specials.delete t
+        end
       }
       #Permit sending dupe tags
 
-      wo_specials.map {|k,v| 
-      	if v.is_a? Enumerable 
-      		v.each {|vv|s+="#{k}=#{vv}"+SOH}	
-      	elsif not HEADERTAGS.member? k	# we've already included those
-	      		s+="#{k}=#{v}"+SOH
-	      	
-      	end
+      wo_specials.map {|k,v|
+        if not HEADERTAGS.member? k
+          if v.class==Array
+            v.each {|vv|s+="#{k}=#{vv}"+SOH}
+          else # we've already included those
+            s+="#{k}=#{v}"+SOH
+          end
+        end
       }
-      return s	
+      return s
     end
 
     def to_fix (msg=nil)
@@ -78,7 +84,7 @@ module Fix
 
     def checksum (msg=nil)
       if msg.nil?
-    	msg=self._fix_wo_checksum
+        msg=self._fix_wo_checksum
       end
       sum=0
       msg.split("").each {|chr| sum+=chr.ord}
@@ -102,19 +108,28 @@ module Fix
       sum
     end
     def receive_data(data)
-    	puts data
+      puts data
     end
     def calc_length(msg=nil)
-    	if msg.nil?
-    		msg=@fixmsg
-    	end
-    	wo_specials=(msg.select {|k,v| not ([VERSION,BODYLENGTH,CHECKSUM].member? k)})
-    	i=0
-    	wo_specials.each {|k,v| i+=k.to_s.length+v.to_s.length+2}
-    	return i
+      if msg.nil?
+        msg=@fixmsg
+      end
+      i=0
+      # wo_specials=(msg.select {|k,v| not ([VERSION,BODYLENGTH,CHECKSUM].member? k)})
+      # wo_specials.each {|k,v| i+=k.to_s.length+v.to_s.length+2}
+
+      s=self._fix_wo_checksum
+      # puts "WO CHECKSUM #{s}"
+      spl=s.split(/\u00019=\d*\u0001/)
+      # puts "SPL1   " + spl[0].to_s
+      # puts "SPL2   " + spl[1].to_s
+      # puts "Split="+ 
+      i=0
+      spl[1].to_s.length
+      # return i
     end
     def update_length
-    	self.set_tag(BODYLENGTH,self.calc_length)
+      self.set_tag(BODYLENGTH,self.calc_length)
     end
     def prepare_fix!
       self.update_timestamp

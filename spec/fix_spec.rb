@@ -40,6 +40,8 @@ end
 describe Fix::FixMessage, "#calc_length" do
   it "calculates length correctly" do
     m=Fix::FixMessage.from_fix(FIXMSG1)
+    m.update_length
+    #puts m
     m.calc_length.to_s.should  eq("121")
 
     #puts m
@@ -59,6 +61,7 @@ describe Fix::FixMessage, "#to_fix" do
     dupes=["GSED018437","GSED018437"]
     m.set_tag 49, dupes
     msg=m.to_fix
+    # puts m.to_s
     matches=msg.scan (/49=(\w+)/)
     matches.count.should eq 2
     (matches.map {|v| v[0].to_s}).should eq dupes
@@ -67,6 +70,7 @@ describe Fix::FixMessage, "#to_fix" do
   it "puts tags in correct order" do
     m=Fix::FixMessage.from_fix(FIXMSG1)
     m.prepare_fix!
+    # puts m.to_s
     pairs=(m.to_fix).split SOH
     # Tag 8 comes 1st
     tag,value=pairs[0].split "="
@@ -74,8 +78,12 @@ describe Fix::FixMessage, "#to_fix" do
     # Tag 9 - BodyLength comes 2nd
     tag,value=pairs[1].split "="
     tag.should eq("9")
+    # Tag 35 is third
+    tag,value=pairs[2].split "="
+    tag.should eq("35")
     # Tag 10 - checksum comes last
     tag,value=pairs[-1].split "="
     tag.should eq("10")
+
   end
 end

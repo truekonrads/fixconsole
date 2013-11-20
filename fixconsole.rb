@@ -7,7 +7,6 @@ LOGIN={
   8 => "FIXT.1.1",
   9 => "121",
   35 => "A",
-  49 => "GSED01 8437",
   56 => "TR MATCHING",
   34 => "1",
   142 => "TRFXMAB1234567890",
@@ -63,7 +62,13 @@ class FixConnection < EM::Connection
 end
 
 class FixSession
-  def initialize
+  def initialize (opts={})
+    defaults = {
+      :auto_logon => true,
+      :login_message => nil,
+      :on_showtime => nil,
+      }
+    @config=defaults.merge opts
     @state=MicroMachine.new(:new)
     @connection=nil
     @msgSeqNum=0
@@ -76,7 +81,9 @@ class FixSession
   def init_states
     @state.when(:connection_ready,:new => :connected)
     @state.on(:connected) do
-      send_login
+      if @config[:auto_logon]
+        send_login
+      end
     end
     @state.when(:logon_succeeded,:connected => :showtime)
     @state.when(:logon_error,:connected => :failed_login)
@@ -91,6 +98,9 @@ class FixSession
     end
     @state.on(:showtime) do
       puts "[D] Showtime!"
+      if not @config[:on_showtime].nil?
+        @config[:on_showtime].call self
+      end
       # start_heartbeat @heartbeatint
     end
 
@@ -102,7 +112,9 @@ class FixSession
       self.cancel_heartbeat
     end
     DEFAULTS.each {|k,v|
-      fix.set_tag(k,v)
+      if not fix.tags.member? k
+        fix.set_tag(k,v)
+      end
     }
     @msgSeqNum+=1
     fix.set_tag Fix::MSGSEQNUM,@msgSeqNum
@@ -117,7 +129,11 @@ class FixSession
   end
 
   def send_login
-    login=Fix::FixMessage.new LOGIN
+    if @config[:login_message]
+      login=@config[:login_message]
+    else
+      login=Fix::FixMessage.new LOGIN
+    end
     login.set_tag Fix::MSGSEQNUM,@msgSeqNum
     #login.set_tag 52,"121"
     login.set_tag 789,@nextSeqNumber
@@ -130,7 +146,7 @@ class FixSession
 
   def unbind
     @connection=nil
-    puts "[D] Connection lost, state #{@state.state}"
+    puts "[D] Connection lost"
     @state.trigger(:unbind)
     sleep 1
     self.go
@@ -164,11 +180,17 @@ class FixSession
     #puts "[D] I am message_received and the state is #{@state.state}"
     @fixmsg=fix
     if @state.state==:connected or @state.state==:showtime
-      if fix.tags[35]=="5" and (msgSeqNum=/Tag 34 \(MsgSeqNum\) is lower than expected. Expected (\d+)/.match(fix.tags[58]).captures[0])
+      if fix.tags[35]=="5"
+      if (match=/Tag 34 \(MsgSeqNum\) is lower than expected. Expected (\d+)/.match(fix.tags[58]))
+        msgSeqNum=match.captures[0]
         puts "[D] Got complaint about bad message number, "
         @msgSeqNum=(msgSeqNum.to_i)
         puts "[D] The new MsgSeqNum is #{@msgSeqNum}"
+      else
+        puts "[D] We got booted off: #{fix.tags[58]}"
       end
+
+    end
       if fix.tags[35]=="A"  # LOGON
         @msgSeqNum=(fix.tags[789].to_i-1)
         @heartbeatint=fix.tags[108].to_i
