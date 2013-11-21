@@ -2,6 +2,7 @@
 require 'rubygems'
 require 'eventmachine'
 require 'micromachine'
+require 'date'
 require_relative 'lib/fix.rb'
 LOGIN={
   8 => "FIXT.1.1",
@@ -17,8 +18,11 @@ LOGIN={
   1137 => "9",
   1407 => "100",
   10 => "034",
-  142 => "TRFXMAB1234567890"
+  142 => "TRFXMAB1234567890",
+  553 => "FIXB",
+  554 => "test123",
   #141 => "Y"
+
 }
 
 HEARTBEAT = {
@@ -27,15 +31,15 @@ HEARTBEAT = {
 }
 
 DEFAULTS={
-  49 => "GSED018437",
+  49 => "GSED028437",
   56 => "TR MATCHING",
 
 }
-
 class FixConnection < EM::Connection
   def initialize(fixsession)
     super
     @fixsession=fixsession
+    fixsession.set_connection self
   end
 
   def send_fix(fixmsg)
@@ -67,6 +71,7 @@ class FixSession
       :auto_logon => true,
       :login_message => nil,
       :on_showtime => nil,
+      :reconnect_sleep => 3
       }
     @config=defaults.merge opts
     @state=MicroMachine.new(:new)
@@ -77,6 +82,10 @@ class FixSession
     @hbtimer=nil
     @nextSeqNumber=1
     init_states
+    @connection=nil
+  end
+  def set_connection (c)
+    @connection=c
   end
   def init_states
     @state.when(:connection_ready,:new => :connected)
@@ -148,7 +157,9 @@ class FixSession
     @connection=nil
     puts "[D] Connection lost"
     @state.trigger(:unbind)
-    sleep 1
+    if not @config[:reconnect_sleep].nil? 
+      sleep @config[:reconnect_sleep]
+    end
     self.go
   end
 
