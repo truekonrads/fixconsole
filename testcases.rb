@@ -8,7 +8,7 @@ require 'ronin'
 include Fix
 
 # login_with_dupes=FixMessage.new LOGIN.merge DEFAULTS
-# login_with_dupes.set_tag 49,["GSED018437" , "GSED028437"]
+# login_with_dupes.set_tag 49,["YOURSENDERCOMPID" , "YOURSENDERCOMPID"]
 
 # sess=FixSession.new :login_message => login_with_dupes
 # sess.go
@@ -18,9 +18,9 @@ include Fix
 #   	EM::Timer.new(10) do
 #     puts "[DDDDDDDDDDDDDDD]Ring! Ring! Ring"
 #     login_with_pwd=FixMessage.new LOGIN.merge DEFAULTS
-#     login_with_pwd.set_tag 49,["GSED028437","GSED018437"]
-#     login_with_pwd.set_tag 553,"FIXB"
-#     login_with_pwd.set_tag 554,"test123"
+#     login_with_pwd.set_tag 49,["YOURSENDERCOMPID","YOURSENDERCOMPID"]
+#     login_with_pwd.set_tag 553,"FIXUser"
+#     login_with_pwd.set_tag 554,"lalala"
 #     sess.send_fix login_with_pwd
 # 	end
 
@@ -38,7 +38,7 @@ class FuzzingLoginSession <FixSession
     @msgcounter=0
   end
   def init_states
-  	super
+    super
     @state.on(:showtime) do
       puts "[DD] How did we get through? closing connection"
       @connection.close_connection
@@ -54,9 +54,9 @@ class FuzzingLoginSession <FixSession
       8 => "FIXT.1.1",
       9 => "121",
       35 => "A",
-      56 => "TR MATCHING",
+      56 => "YOURTARGETCOMPID",
       34 => "1",
-      142 => "TRFXMAB1234567890",
+      142 => "YOURCOMPLOCATION",
       52 => "20131118-14:48:16",
       98 => "0",
       108 => "4",
@@ -64,25 +64,26 @@ class FuzzingLoginSession <FixSession
       1137 => "9",
       1407 => "100",
       10 => "034",
-      142 => "TRFXMAB1234567890",
-      49 => "GSED028437",
-      553 => "FIXA",
-      554 => "test123",
-      56 => "TR MATCHING",
+      142 => "YOURTARGETCOMPID",
+      553 => "FIXUser",
+      554 => "lalalala",
+      56 => "YOURCOMPID"
+
+      ,
       #141 => "Y"
     }
     login=Fix::FixMessage.new tagsoup
     #Fuzz here!
     if @ranonce
-    	
+
       begin
-        if @tagindex < 	@fuzztags.length          
+        if @tagindex < 	@fuzztags.length
           tag=@fuzztags[@tagindex]
           if @vectors.nil?
-          	puts "Defining vectors"
-          	@vectors=(Ronin::Fuzzing::Mutator.new /./ => ["\0"]).each(tagsoup[tag])
-          	puts "Defined"
-		  end          
+            puts "Defining vectors"
+            @vectors=(Ronin::Fuzzing::Mutator.new /./ => ["\0"]).each(tagsoup[tag])
+            puts "Defined"
+          end
           v=@vectors.next
           puts "[DD] Fuzzing tag #{tag} with vector #{v}"
           login.set_tag tag, v
@@ -96,7 +97,7 @@ class FuzzingLoginSession <FixSession
         @tagindex+=1
         @vectors=nil
         puts "[DD] Incrementing @tagindex to #{@tagindex} "
-        
+
       end
     end
     @config[:login_message]=login

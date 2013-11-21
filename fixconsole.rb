@@ -8,9 +8,9 @@ LOGIN={
   8 => "FIXT.1.1",
   9 => "121",
   35 => "A",
-  56 => "TR MATCHING",
+  56 => "YOURTARGETCOMPID",
   34 => "1",
-  142 => "TRFXMAB1234567890",
+  142 => "YOURCOMPLOCATION",
   52 => "20131118-14:48:16",
   98 => "0",
   108 => "4",
@@ -18,9 +18,9 @@ LOGIN={
   1137 => "9",
   1407 => "100",
   10 => "034",
-  142 => "TRFXMAB1234567890",
-  553 => "FIXB",
-  554 => "test123",
+  142 => "YOURTARGETCOMPID",
+  553 => "FIXUser",
+  554 => "lalalala",
   #141 => "Y"
 
 }
@@ -31,8 +31,8 @@ HEARTBEAT = {
 }
 
 DEFAULTS={
-  49 => "GSED028437",
-  56 => "TR MATCHING",
+  49 => "SENDERCOMPID",
+  56 => "YOURTARGETCOMPID",
 
 }
 class FixConnection < EM::Connection
