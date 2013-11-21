@@ -3,14 +3,14 @@ RSpec.configure do |config|
 end
 require_relative '../lib/fix.rb'
 SOH="\1"
-FIXMSG1="8=FIXT.1.1\x019=121\x0135=A\x0149=YOURUSER018437\x0156=TR MATCHING\x0134=3884\x01142=YOURTARGET1234567890\x0152=20131118-14:48:16\x0198=0\x01108=4\x01789=3817\x011137=9\x011407=100\x0110=143\x01"
+FIXMSG1="8=FIXT.1.1\x019=121\x0135=A\x0149=YOURUSER018437\x0156=YOUR CLIENT\x0134=3884\x01142=YOURTARGET1234567890\x0152=20131118-14:48:16\x0198=0\x01108=4\x01789=3817\x011137=9\x011407=100\x0110=172\x01"
 
 FIXMSG1_EXPANDED={
   8 => "FIXT.1.1",
   9 => "121",
   35 => "A",
   49 => "YOURUSER018437",
-  56 => "TR MATCHING",
+  56 => "YOUR CLIENT",
   34 => "3884",
   142 => "YOURTARGET1234567890",
   52 => "20131118-14:48:16",
@@ -19,13 +19,13 @@ FIXMSG1_EXPANDED={
   789 => "3817",
   1137 => "9",
   1407 => "100",
-  10 => "143",
+  10 => "172",
 }
 
 describe Fix::FixMessage, "#checksum" do
   it "calculates a correct checksum" do
     m=Fix::FixMessage.from_fix(FIXMSG1)
-    m.checksum(m._fix_wo_checksum).should eq("143")
+    m.checksum(m._fix_wo_checksum).should eq("172")
   end
 end
 
