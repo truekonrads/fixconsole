@@ -22,7 +22,7 @@ FIXMSG1_EXPANDED={
   10 => "034",
 }
 
-describe Fix::FixMessage, "#checksum" do
+describe Fix::FixSession, "#checksum" do
   it "calculates a correct checksum" do
     m=Fix::FixMessage.from_fix(FIXMSG1)
     m.checksum(m._fix_wo_checksum).should eq("034")
